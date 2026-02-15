@@ -1,88 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Ultra Modi Bird Game</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+<title>Flying Modi – Mobile Edition</title>
 
 <style>
+* {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   margin: 0;
   overflow: hidden;
   background: linear-gradient(#87CEEB, #ffffff);
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: system-ui, sans-serif;
 }
 
 #game {
   position: relative;
   width: 100vw;
   height: 100vh;
-  cursor: pointer;
 }
 
 .bird {
-  width: 65px;
-  height: 65px;
-  background-image: url('https://globalwiki.org/images/3/3e/Narendra-Modi.jpeg');
+  width: 60px;
+  height: 60px;
+  background-image: url("https://globalwiki.org/images/3/3e/Narendra-Modi.jpeg");
   background-size: cover;
   background-position: center;
   border-radius: 50%;
   border: 3px solid #ff9933;
   position: absolute;
-  left: 100px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  z-index: 5;
+  left: 80px;
 }
 
 .pipe {
   width: 60px;
-  background: #138808;
   position: absolute;
-  border: 2px solid #fff;
-  border-radius: 5px;
+  border-radius: 8px;
 }
 
 .info {
   position: absolute;
-  top: 15px;
-  left: 15px;
-  font-size: 22px;
+  top: 10px;
+  left: 10px;
+  font-size: 18px;
   font-weight: bold;
   z-index: 10;
-  color: #333;
-  text-shadow: 1px 1px white;
 }
 
-.game-over {
+#start {
+  position: absolute;
+  top: 45%;
+  width: 100%;
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: #1e3799;
+}
+
+#gameOver {
+  display: none;
   position: absolute;
   top: 35%;
   width: 100%;
   text-align: center;
-  font-size: 50px;
-  display: none;
-  z-index: 20;
+  font-size: 40px;
   color: #d32f2f;
-  font-weight: 900;
+  font-weight: bold;
 }
 
 button {
-  padding: 15px 35px;
-  font-size: 20px;
-  cursor: pointer;
+  margin-top: 20px;
+  padding: 12px 30px;
+  font-size: 18px;
+  border: none;
+  border-radius: 40px;
   background: #ff9933;
   color: white;
-  border: none;
-  border-radius: 50px;
-  font-weight: bold;
-}
-
-#start-msg {
-  position: absolute;
-  top: 50%;
-  width: 100%;
-  text-align: center;
-  font-size: 26px;
-  color: #1e3799;
-  font-weight: bold;
 }
 </style>
 </head>
@@ -92,87 +90,89 @@ button {
 <div id="game">
   <div class="info">
     Score: <span id="score">0</span> |
-    Lives: <span id="lives">3</span> |
     Level: <span id="level">1</span>
   </div>
 
-  <div id="start-msg">Tap / Click / Space to Start 🎵</div>
-  <div class="bird" id="bird"></div>
-
-  <div class="game-over" id="gameOver">
-    GAME OVER <br><br>
+  <div id="start">Tap to Start 🚀</div>
+  <div id="gameOver">
+    GAME OVER<br/>
     <button onclick="resetGame()">Restart</button>
   </div>
 
-  <!-- BACKGROUND MUSIC -->
+  <div class="bird" id="bird"></div>
+
   <audio id="bgMusic" loop preload="auto">
-    <source src="bg.mp3" type="audio/mpeg">
+    <source src="bg.mp3" type="audio/mpeg" />
   </audio>
 </div>
 
 <script>
+const game = document.getElementById("game");
 const bird = document.getElementById("bird");
 const scoreEl = document.getElementById("score");
-const livesEl = document.getElementById("lives");
 const levelEl = document.getElementById("level");
+const startEl = document.getElementById("start");
 const gameOverEl = document.getElementById("gameOver");
-const startMsg = document.getElementById("start-msg");
-const bgMusic = document.getElementById("bgMusic");
+const music = document.getElementById("bgMusic");
 
-let birdY = 250;
+let birdY = window.innerHeight / 2;
 let velocity = 0;
 let gravity = 0.45;
-let lift = -8.5;
+let lift = -8;
 
 let score = 0;
-let lives = 3;
 let level = 1;
-let speed = 4;
+let speed = 3;
 let pipes = [];
-let gameRunning = false;
-let pipeInterval = null;
+let running = false;
 
 bird.style.top = birdY + "px";
 
+function randomColor() {
+  const colors = ["#138808", "#ff9933", "#1e90ff", "#9c27b0", "#e91e63"];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
 function startGame() {
-  if (gameRunning) return;
-
-  gameRunning = true;
-  startMsg.style.display = "none";
+  if (running) return;
+  running = true;
+  startEl.style.display = "none";
   gameOverEl.style.display = "none";
-
-  bgMusic.play().catch(() => {}); // USER INTERACTION SAFE
-
-  pipeInterval = setInterval(createPipe, 1700);
-  requestAnimationFrame(gameLoop);
+  music.play().catch(() => {});
+  spawnPipe();
+  requestAnimationFrame(loop);
 }
 
-function createPipe() {
-  if (!gameRunning) return;
+function spawnPipe() {
+  if (!running) return;
 
-  const gap = 190;
-  const topHeight = Math.random() * 280 + 50;
+  const gap = 180 - level * 5;
+  const topHeight = Math.random() * 250 + 50;
+  const color = randomColor();
 
-  const topPipe = document.createElement("div");
-  const bottomPipe = document.createElement("div");
+  const top = document.createElement("div");
+  const bottom = document.createElement("div");
 
-  topPipe.className = bottomPipe.className = "pipe";
+  top.className = bottom.className = "pipe";
+  top.style.background = bottom.style.background = color;
 
-  topPipe.style.height = topHeight + "px";
-  topPipe.style.top = "0";
-  topPipe.style.left = window.innerWidth + "px";
+  top.style.height = topHeight + "px";
+  top.style.top = "0";
+  top.style.left = window.innerWidth + "px";
 
-  bottomPipe.style.height =
+  bottom.style.height =
     window.innerHeight - topHeight - gap + "px";
-  bottomPipe.style.bottom = "0";
-  bottomPipe.style.left = window.innerWidth + "px";
+  bottom.style.bottom = "0";
+  bottom.style.left = window.innerWidth + "px";
 
-  document.getElementById("game").append(topPipe, bottomPipe);
-  pipes.push({ top: topPipe, bottom: bottomPipe });
+  game.append(top, bottom);
+  pipes.push({ top, bottom });
+
+  setTimeout(spawnPipe, 1800 - level * 80);
 }
 
-function gameLoop() {
-  if (!gameRunning) return;
+function loop() {
+  if (!running) return;
 
   velocity += gravity;
   birdY += velocity;
@@ -186,21 +186,16 @@ function gameLoop() {
     p.bottom.style.left = left + "px";
 
     if (
-      bird.offsetLeft + 55 > left &&
+      bird.offsetLeft + 50 > left &&
       bird.offsetLeft < left + 60 &&
       (birdY < p.top.offsetHeight ||
-        birdY + 55 >
+        birdY + 50 >
           window.innerHeight - p.bottom.offsetHeight)
     ) {
-      lives--;
-      livesEl.textContent = lives;
-      p.top.remove();
-      p.bottom.remove();
-      pipes.splice(i, 1);
-      if (lives <= 0) endGame();
+      endGame();
     }
 
-    if (left < -60) {
+    if (left < -70) {
       p.top.remove();
       p.bottom.remove();
       pipes.splice(i, 1);
@@ -210,49 +205,49 @@ function gameLoop() {
       if (score % 5 === 0) {
         level++;
         levelEl.textContent = level;
-        speed += 0.6;
+        speed += 0.5;
       }
     }
   }
 
   if (birdY < 0 || birdY > window.innerHeight) endGame();
 
-  requestAnimationFrame(gameLoop);
+  requestAnimationFrame(loop);
 }
 
 function endGame() {
-  gameRunning = false;
-  clearInterval(pipeInterval);
+  running = false;
   gameOverEl.style.display = "block";
 }
 
 function resetGame() {
-  document.querySelectorAll(".pipe").forEach(p => p.remove());
+  pipes.forEach(p => {
+    p.top.remove();
+    p.bottom.remove();
+  });
   pipes = [];
-  birdY = 250;
+  birdY = window.innerHeight / 2;
   velocity = 0;
   score = 0;
-  lives = 3;
   level = 1;
-  speed = 4;
-
+  speed = 3;
   scoreEl.textContent = score;
-  livesEl.textContent = lives;
   levelEl.textContent = level;
-
   bird.style.top = birdY + "px";
-  startMsg.style.display = "block";
+  startEl.style.display = "block";
 }
 
-function input() {
-  if (!gameRunning) startGame();
+function flap() {
+  if (!running) startGame();
   velocity = lift;
 }
 
-document.getElementById("game").addEventListener("click", input);
-document.addEventListener("keydown", e => {
-  if (e.code === "Space" || e.code === "ArrowUp") input();
-});
+game.addEventListener("touchstart", e => {
+  e.preventDefault();
+  flap();
+}, { passive: false });
+
+game.addEventListener("click", flap);
 </script>
 
 </body>
